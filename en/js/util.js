@@ -1,5 +1,16 @@
 (function($) {
     var publicMethods = {
+        isReservedKeyword : function (str) {
+            var reservedKeyword = [ 'api' ];
+            var result = false;
+            var value = str.toLowerCase().split('#')[0];
+            $(reservedKeyword).each(function (i,ext) {
+                if (value.toLowerCase().endsWith (ext)) {
+                    result = true;
+                }
+            });
+            return result;
+        },
         isRelativeUrl: function(url) {
             if (url === undefined) {
                 return false;

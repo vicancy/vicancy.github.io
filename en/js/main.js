@@ -79,11 +79,76 @@
         return uglyHtml;
     }
 
-    function registerFetchMarkdown() {
+        
+    function registerFetchYaml(){
 
         var md = '';
 
+        function willdo(){
+            return $.md.util.isReservedKeyword($.md.mainHref);
+        };
+
         $.md.stage('init').subscribe(function(done) {
+            if (!willdo()){
+                done();
+                return;
+            }
+            var ajaxReq = {
+                url: $.md.mainHref + ".yaml",
+                dataType: 'text'
+            };
+            $.ajax(ajaxReq).done(function(data) {
+                // TODO do this elsewhere
+                md = data;
+                done();
+            }).fail(function() {
+                var log = $.md.getLogger();
+                log.fatal('Could not get ' + $.md.mainHref);
+                done();
+            });
+        });
+
+        // find baseUrl
+        $.md.stage('transform').subscribe(function(done) {
+            if (!willdo()){
+                done();
+                return;
+            }
+            var len = $.md.mainHref.lastIndexOf('/');
+            var baseUrl = $.md.mainHref.substring(0, len+1);
+            $.md.baseUrl = baseUrl;
+            done();
+        });
+
+        $.md.stage('transform').subscribe(function(done) {
+            if (!willdo()){
+                done();
+                return;
+            }
+            var uglyHtml = transformMarkdown(md);
+            $('#md-content').html(uglyHtml);
+            md = '';
+            var dfd = $.Deferred();
+            loadExternalIncludes(dfd);
+            dfd.always(function () {
+                done();
+            });
+        });
+    }
+
+    function registerFetchMarkdown() {
+
+        var md = '';
+        function willdo(){
+            return $.md.util.hasMarkdownFileExtension($.md.mainHref);
+        };
+
+        $.md.stage('init').subscribe(function(done) {
+            if (!willdo()){
+                done();
+                return;
+            }
+
             var ajaxReq = {
                 url: $.md.mainHref,
                 dataType: 'text'
@@ -101,6 +166,10 @@
 
         // find baseUrl
         $.md.stage('transform').subscribe(function(done) {
+            if (!willdo()){
+                done();
+                return;
+            }
             var len = $.md.mainHref.lastIndexOf('/');
             var baseUrl = $.md.mainHref.substring(0, len+1);
             $.md.baseUrl = baseUrl;
@@ -108,6 +177,10 @@
         });
 
         $.md.stage('transform').subscribe(function(done) {
+            if (!willdo()){
+                done();
+                return;
+            }
             var uglyHtml = transformMarkdown(md);
             $('#md-content').html(uglyHtml);
             md = '';
@@ -255,6 +328,8 @@
             function build_link (url) {
                 if ($.md.util.hasMarkdownFileExtension (url))
                     return '#!' + url;
+                if ($.md.util.isReservedKeyword(url))
+                    return '#!' + url;
                 else
                     return url;
             }
@@ -378,10 +453,12 @@
         });
 
     }
+
     function loadContent(href) {
         $.md.mainHref = href;
 
         registerFetchMarkdown();
+        registerFetchYaml();
         registerClearContent();
 
         // find out which link gimmicks we need
