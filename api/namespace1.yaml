@@ -1,0 +1,5 @@
+type: namespace
+
+items:
+	class1:
+		path: api/class1
